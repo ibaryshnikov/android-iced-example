@@ -1,32 +1,42 @@
-rThis is a minimal test application based on `NativeActivity` that just
-runs a mainloop based on android_activity::poll_events() and traces
-the events received without doing any rendering. It also saves and
-restores some minimal application state.
+# Example of building android app with iced
 
-Since this test doesn't require a custom `Activity` subclass it's
-optionally possible to build this example with `cargo apk`.
+Based on several other examples:
+ - [na-mainloop](https://github.com/rust-mobile/android-activity/tree/v0.6.0/examples/na-mainloop)
+   from `android-activity`
+ - [na-winit-wgpu](https://github.com/rust-mobile/rust-android-examples/tree/main/na-winit-wgpu)
+   from `rust-android-examples`
+ - [integration](https://github.com/iced-rs/iced/tree/0.12.1/examples/integration)
+   from `iced`
 
-# Gradle Build
+
+## Preview
+
+![First image](iced_android_1.png)
+![Second image](iced_android_2.png)
+
+
+## Building and running
+
+Check `android-activity` crate for detailed instructions.
+During my tests I was running the following command and using android studio afterwards.
+
+```bash
+cargo ndk -t arm64-v8a -o app/src/main/jniLibs/ build
 ```
-export ANDROID_NDK_HOME="path/to/ndk"
-export ANDROID_HOME="path/to/sdk"
 
-rustup target add aarch64-linux-android
-cargo install cargo-ndk
 
-cargo ndk -t arm64-v8a -o app/src/main/jniLibs/  build
-./gradlew build
-./gradlew installDebug
-```
+My setup is the following:
+- archlinux 6.9.6
+- jdk-openjdk 22
+- target api 35
 
-# Cargo APK Build
-```
-export ANDROID_NDK_HOME="path/to/ndk"
-export ANDROID_SDK_HOME="path/to/sdk"
 
-rustup target add aarch64-linux-android
-cargo install cargo-apk
+## How it works
 
-cargo apk build
-cargo apk run
-```
+Thanks to `android-activity` we can already build android apps in Rust, and
+key crates such as `winit` and `wgpu` also support building for android.
+`iced` doesn't support android out of the box, but it can be integrated with
+existing graphics pipelines, as shown in
+[integration](https://github.com/iced-rs/iced/tree/0.12.1/examples/integration) example.
+As a result, it was possible to convert existing example running `winit` + `wgpu` to
+use `iced` on top.
