@@ -18,10 +18,16 @@ Based on several other examples:
 ## Building and running
 
 Check `android-activity` crate for detailed instructions.
-During my tests I was running the following command and using android studio afterwards.
+During my tests I was running the following command and using android studio afterwards:
 
 ```bash
-cargo ndk -t arm64-v8a -o app/src/main/jniLibs/ build
+export ANDROID_NDK_HOME="path/to/ndk"
+export ANDROID_HOME="path/to/sdk"
+
+rustup target add x86_64-linux-android
+cargo install cargo-ndk
+
+cargo ndk -t x86_64 -o app/src/main/jniLibs/  build
 ```
 
 
