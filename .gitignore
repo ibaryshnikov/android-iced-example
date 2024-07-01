@@ -1,0 +1,15 @@
+*.iml
+.gradle
+/local.properties
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+*.so
+
+.idea
+/x86_64
+Cargo.lock
+/target
