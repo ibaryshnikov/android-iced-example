@@ -14,19 +14,19 @@ ndk-sys = "0.6.0"
 ndk = "0.9.0"
 pollster = "0.3"
 
-[dependencies.iced]
+[dependencies.iced_widget]
 git = "https://github.com/ibaryshnikov/iced.git"
-rev = "76a9a2b" # branch = "android"
-# path = "../../iced"
+rev = "10e84d4"
+# path = "../../iced/widget"
 
 [dependencies.iced_winit]
 git = "https://github.com/ibaryshnikov/iced.git"
-rev = "76a9a2b"
+rev = "10e84d4"
 # path = "../../iced/winit"
 
 [dependencies.iced_wgpu]
 git = "https://github.com/ibaryshnikov/iced.git"
-rev = "76a9a2b"
+rev = "10e84d4"
 # path = "../../iced/wgpu"
 
 [patch.crates-io]

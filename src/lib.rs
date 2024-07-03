@@ -38,9 +38,6 @@ fn android_main(app: AndroidApp) {
 struct App {
     app_data: Option<AppData>,
     resized: bool,
-    request_redraw: bool,
-    wait_cancelled: bool,
-    close_requested: bool,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: ModifiersState,
 }
@@ -65,9 +62,6 @@ impl App {
         Self {
             app_data: None,
             resized: false,
-            request_redraw: false,
-            wait_cancelled: false,
-            close_requested: false,
             cursor_position: None,
             modifiers: ModifiersState::default(),
         }
@@ -333,16 +327,5 @@ impl ApplicationHandler for App {
         }
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if self.request_redraw && !self.wait_cancelled && !self.close_requested {
-            if let Some(app_data) = &self.app_data {
-                app_data.window.request_redraw();
-            }
-            self.request_redraw = false;
-        }
-
-        if self.close_requested {
-            event_loop.exit();
-        }
-    }
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {}
 }

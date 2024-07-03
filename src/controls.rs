@@ -1,5 +1,5 @@
-use iced::widget::{column, container, row, slider, text, text_input};
 use iced_wgpu::Renderer;
+use iced_widget::{column, container, row, slider, text, text_input};
 use iced_winit::core::alignment;
 use iced_winit::core::{Color, Element, Length, Theme};
 use iced_winit::runtime::{Command, Program};
