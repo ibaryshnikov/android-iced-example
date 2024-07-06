@@ -7,9 +7,9 @@ use iced_winit::runtime::{program, Debug};
 use iced_winit::{conversion, winit, Clipboard};
 use wgpu::{Device, Instance, Queue, TextureFormat};
 use winit::application::ApplicationHandler;
-use winit::event::{StartCause, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
-use winit::keyboard::ModifiersState;
+use winit::event::{ElementState, StartCause, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
+use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 use winit::platform::android::activity::AndroidApp;
 use winit::platform::android::EventLoopBuilderExtAndroid;
 use winit::window::{Window, WindowId};
@@ -21,21 +21,31 @@ use controls::Controls;
 use scene::Scene;
 
 #[no_mangle]
-fn android_main(app: AndroidApp) {
+fn android_main(android_app: AndroidApp) {
     android_logger::init_once(android_logger::Config::default().with_min_level(log::Level::Info));
 
     log::info!("android_main started");
 
-    let event_loop = EventLoop::builder()
-        .with_android_app(app)
+    let event_loop = EventLoop::with_user_event()
+        .with_android_app(android_app.clone())
         .build()
         .expect("Should build event loop");
 
-    let mut app = App::new();
+    let proxy = event_loop.create_proxy();
+
+    let mut app = App::new(android_app, proxy);
     event_loop.run_app(&mut app).expect("Should run event loop");
 }
 
+#[derive(Debug)]
+enum UserEvent {
+    ShowKeyboard,
+    HideKeyboard,
+}
+
 struct App {
+    android_app: AndroidApp,
+    proxy: EventLoopProxy<UserEvent>,
     app_data: Option<AppData>,
     resized: bool,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
@@ -58,8 +68,10 @@ struct AppData {
 }
 
 impl App {
-    fn new() -> Self {
+    fn new(android_app: AndroidApp, proxy: EventLoopProxy<UserEvent>) -> Self {
         Self {
+            android_app,
+            proxy,
             app_data: None,
             resized: false,
             cursor_position: None,
@@ -68,7 +80,7 @@ impl App {
     }
 }
 
-impl ApplicationHandler for App {
+impl ApplicationHandler<UserEvent> for App {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {}
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
@@ -96,7 +108,7 @@ impl ApplicationHandler for App {
             .create_surface(window.clone())
             .expect("Create window surface");
 
-        let (format, adapter, device, queue) = pollster::block_on(async {
+        let (format, adapter, device, queue) = futures::executor::block_on(async {
             let adapter =
                 wgpu::util::initialize_adapter_from_env_or_default(&instance, Some(&surface))
                     .await
@@ -147,7 +159,7 @@ impl ApplicationHandler for App {
         );
 
         let scene = Scene::new(&device, format);
-        let controls = Controls::new();
+        let controls = Controls::new(self.proxy.clone());
 
         let mut debug = Debug::new();
         let engine = Engine::new(&adapter, &device, &queue, format, None);
@@ -176,6 +188,17 @@ impl ApplicationHandler for App {
             debug,
         };
         self.app_data = Some(app_data);
+    }
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
+        match event {
+            UserEvent::ShowKeyboard => {
+                self.android_app.show_soft_input(false);
+            }
+            UserEvent::HideKeyboard => {
+                self.android_app.hide_soft_input(false);
+            }
+        }
     }
 
     fn window_event(
@@ -292,6 +315,28 @@ impl ApplicationHandler for App {
             WindowEvent::Touch(touch) => {
                 self.cursor_position = Some(touch.location);
             }
+            WindowEvent::ModifiersChanged(modifiers) => {
+                self.modifiers = modifiers.state();
+            }
+            WindowEvent::KeyboardInput {
+                device_id: _,
+                ref event,
+                is_synthetic: _,
+            } => {
+                if let PhysicalKey::Code(code) = event.physical_key {
+                    match code {
+                        KeyCode::ShiftLeft | KeyCode::ShiftRight => match event.state {
+                            ElementState::Pressed => self.modifiers |= ModifiersState::SHIFT,
+                            ElementState::Released => self.modifiers &= !ModifiersState::SHIFT,
+                        },
+                        KeyCode::ControlLeft | KeyCode::ControlRight => match event.state {
+                            ElementState::Pressed => self.modifiers |= ModifiersState::CONTROL,
+                            ElementState::Released => self.modifiers &= !ModifiersState::CONTROL,
+                        },
+                        _ => (),
+                    }
+                }
+            }
             WindowEvent::Resized(_) => {
                 self.resized = true;
             }
@@ -315,9 +360,9 @@ impl ApplicationHandler for App {
                     .map(mouse::Cursor::Available)
                     .unwrap_or(mouse::Cursor::Unavailable),
                 renderer,
-                &Theme::Dark,
+                &Theme::Ferra,
                 &renderer::Style {
-                    text_color: Color::WHITE,
+                    text_color: Theme::Ferra.palette().text,
                 },
                 clipboard,
                 debug,

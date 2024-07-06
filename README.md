@@ -11,8 +11,28 @@ Based on several other examples:
 
 ## Preview
 
-![First image](iced_android_1.png)
-![Second image](iced_android_2.png)
+iced integration example
+
+![Pixel first screenshot](pixel_1.png)
+![Pixed second screenshot](pixel_2.png)
+
+You can also run most of the examples from iced.
+For this omit the scene rendering part and set the background of the root container.
+
+
+## Watch
+
+![Watch first](watch_1.png)
+![Watch second](watch_2.png)
+![Watch third](watch_3.png)
+
+
+## Multi-line input
+
+Text input is partially supported. Input and selection works, but clipboard and software keyboard doesn't.
+This is mostly related to `android-activity` and `winit`, but also can be dealt with using a bit of Java.
+
+![Pixel third screenshot](pixel_3.png)
 
 
 ## Building and running
