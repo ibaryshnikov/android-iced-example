@@ -27,10 +27,14 @@ For this omit the scene rendering part and set the background of the root contai
 ![Watch third](watch_3.png)
 
 
-## Multi-line input
+## Text input
 
-Text input is partially supported. Input and selection works, but clipboard and software keyboard doesn't.
-This is mostly related to `android-activity` and `winit`, but also can be dealt with using a bit of Java.
+Text input partially works, unresolved issues:
+- window doesn't resize on show/hide soft keyboard
+- how to change input language of soft keyboard
+- ime is not supported
+
+Copy/paste and show/hide soft keyboard is implemented by calling Java
 
 ![Pixel third screenshot](pixel_3.png)
 

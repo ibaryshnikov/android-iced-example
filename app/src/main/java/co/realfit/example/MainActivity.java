@@ -21,13 +21,13 @@ public class MainActivity extends NativeActivity {
 
     private void showKeyboard() {
         Log.d("MainActivity", "showKeyboard instance method called");
-        InputMethodManager inputManager = (InputMethodManager) getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        InputMethodManager inputManager = getSystemService(InputMethodManager.class);
         inputManager.showSoftInput(getWindow().getDecorView(), InputMethodManager.SHOW_IMPLICIT);
     }
 
     private void hideKeyboard() {
         Log.d("MainActivity", "hideKeyboard instance method called");
-        InputMethodManager inputManager = (InputMethodManager) getApplicationContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        InputMethodManager inputManager = getSystemService(InputMethodManager.class);
         inputManager.hideSoftInputFromWindow(getWindow().getDecorView().getWindowToken(), 0);
     }
 
