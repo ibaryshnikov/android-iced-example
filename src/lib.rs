@@ -2,38 +2,49 @@ use std::sync::Arc;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Engine, Renderer};
-use iced_winit::core::{mouse, renderer, window, Color, Font, Pixels, Size, Theme};
+use iced_winit::core::{mouse, renderer, window, Font, Pixels, Size, Theme};
 use iced_winit::runtime::{program, Debug};
-use iced_winit::{conversion, winit, Clipboard};
+use iced_winit::{conversion, winit};
+use log::LevelFilter;
 use wgpu::{Device, Instance, Queue, TextureFormat};
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, StartCause, WindowEvent};
+use winit::event::{DeviceEvent, DeviceId, ElementState, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 use winit::platform::android::activity::AndroidApp;
 use winit::platform::android::EventLoopBuilderExtAndroid;
 use winit::window::{Window, WindowId};
 
+mod clipboard;
 mod controls;
+mod java;
 mod scene;
 
+use clipboard::Clipboard;
 use controls::Controls;
 use scene::Scene;
 
+// winit ime support
+// https://github.com/rust-windowing/winit/pull/2993
+
+// issue with android-activity crate default_motion_filter function
+// https://github.com/rust-mobile/android-activity/issues/79
+
 #[no_mangle]
 fn android_main(android_app: AndroidApp) {
-    android_logger::init_once(android_logger::Config::default().with_min_level(log::Level::Info));
+    let logger_config = android_logger::Config::default().with_max_level(LevelFilter::Info);
+    android_logger::init_once(logger_config);
 
     log::info!("android_main started");
 
     let event_loop = EventLoop::with_user_event()
-        .with_android_app(android_app.clone())
+        .with_android_app(android_app)
         .build()
         .expect("Should build event loop");
 
     let proxy = event_loop.create_proxy();
 
-    let mut app = App::new(android_app, proxy);
+    let mut app = App::new(proxy);
     event_loop.run_app(&mut app).expect("Should run event loop");
 }
 
@@ -44,7 +55,6 @@ enum UserEvent {
 }
 
 struct App {
-    android_app: AndroidApp,
     proxy: EventLoopProxy<UserEvent>,
     app_data: Option<AppData>,
     resized: bool,
@@ -68,9 +78,8 @@ struct AppData {
 }
 
 impl App {
-    fn new(android_app: AndroidApp, proxy: EventLoopProxy<UserEvent>) -> Self {
+    fn new(proxy: EventLoopProxy<UserEvent>) -> Self {
         Self {
-            android_app,
             proxy,
             app_data: None,
             resized: false,
@@ -81,13 +90,16 @@ impl App {
 }
 
 impl ApplicationHandler<UserEvent> for App {
-    fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {}
+    fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
+        // log::info!("New events cause {:?}", cause);
+    }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.app_data.is_some() {
-            log::info!("Already initialized, skipping");
-            return;
-        }
+        log::info!("Resumed");
+        // if self.app_data.is_some() {
+        //     log::info!("Already initialized, skipping");
+        //     return;
+        // }
 
         let instance = Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
@@ -102,7 +114,7 @@ impl ApplicationHandler<UserEvent> for App {
             Size::new(physical_size.width, physical_size.height),
             window.scale_factor(),
         );
-        let clipboard = Clipboard::connect(&window);
+        let clipboard = Clipboard {};
 
         let surface = instance
             .create_surface(window.clone())
@@ -193,12 +205,21 @@ impl ApplicationHandler<UserEvent> for App {
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
         match event {
             UserEvent::ShowKeyboard => {
-                self.android_app.show_soft_input(false);
+                java::call_instance_method("showKeyboard");
             }
             UserEvent::HideKeyboard => {
-                self.android_app.hide_soft_input(false);
+                java::call_instance_method("hideKeyboard");
             }
         }
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: DeviceId,
+        event: DeviceEvent,
+    ) {
+        log::info!("DeviceEvent {:?}", event);
     }
 
     fn window_event(

@@ -4,12 +4,12 @@ plugins {
 
 android {
     ndkVersion "25.2.9519653"
-    compileSdk 33
+    compileSdk 35
 
     defaultConfig {
-        applicationId "co.realfit.android_iced_example"
+        applicationId "co.realfit.example"
         minSdk 28
-        targetSdk 33
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 
@@ -33,10 +33,9 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    namespace 'co.realfit.android_iced_example'
+    namespace 'co.realfit.example'
 }
 
 dependencies {
-
+    // implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"
 }
-

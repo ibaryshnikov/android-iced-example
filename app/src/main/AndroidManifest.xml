@@ -4,20 +4,21 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="NativeActivity AndroidIcedExample"
+        android:label="NativeActivity Iced Example"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity
-            android:name="android.app.NativeActivity"
-            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:name="co.realfit.example.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|locale|keyboardHidden"
+            android:windowSoftInputMode="stateVisible|adjustResize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <meta-data android:name="android.app.lib_name" android:value="android_iced_example" />
+            <meta-data android:name="android.app.lib_name" android:value="example" />
         </activity>
     </application>
 
