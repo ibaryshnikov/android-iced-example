@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Engine, Renderer};
-use iced_winit::core::{mouse, renderer, window, Font, Pixels, Size, Theme};
+use iced_winit::core::{mouse, renderer, Font, Pixels, Size, Theme};
 use iced_winit::runtime::{program, Debug};
 use iced_winit::{conversion, winit};
 use log::LevelFilter;
@@ -136,6 +136,7 @@ impl ApplicationHandler<UserEvent> for App {
                         label: None,
                         required_features: adapter_features & wgpu::Features::default(),
                         required_limits: wgpu::Limits::default(),
+                        memory_hints: wgpu::MemoryHints::MemoryUsage,
                     },
                     None,
                 )
@@ -364,12 +365,9 @@ impl ApplicationHandler<UserEvent> for App {
             _ => (),
         }
 
-        if let Some(event) = iced_winit::conversion::window_event(
-            window::Id::MAIN,
-            event,
-            window.scale_factor(),
-            self.modifiers,
-        ) {
+        if let Some(event) =
+            iced_winit::conversion::window_event(event, window.scale_factor(), self.modifiers)
+        {
             state.queue_event(event);
         }
 

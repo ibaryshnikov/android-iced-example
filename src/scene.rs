@@ -70,6 +70,7 @@ fn build_pipeline(
             module: &vs_module,
             entry_point: "main",
             buffers: &[],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
         },
         fragment: Some(wgpu::FragmentState {
             module: &fs_module,
@@ -82,6 +83,7 @@ fn build_pipeline(
                 }),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
+            compilation_options: wgpu::PipelineCompilationOptions::default(),
         }),
         primitive: wgpu::PrimitiveState {
             topology: wgpu::PrimitiveTopology::TriangleList,
@@ -95,5 +97,6 @@ fn build_pipeline(
             alpha_to_coverage_enabled: false,
         },
         multiview: None,
+        cache: None,
     })
 }

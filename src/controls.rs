@@ -4,7 +4,7 @@ use iced_widget::{
     text_input, vertical_space, PickList, Slider, Space,
 };
 use iced_winit::core::{Alignment, Color, Element, Length, Theme};
-use iced_winit::runtime::{Command, Program};
+use iced_winit::runtime::{Program, Task};
 use iced_winit::winit::event_loop::EventLoopProxy;
 
 use crate::UserEvent;
@@ -67,7 +67,7 @@ impl Program for Controls {
     type Message = Message;
     type Renderer = Renderer;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Inc => self.value += 1,
             Message::Dec => self.value -= 1,
@@ -78,18 +78,20 @@ impl Program for Controls {
             Message::BlueChanged(b) => self.background_color.b = b,
             Message::EditorAction(action) => match action {
                 text_editor::Action::Focus => {
+                    log::info!("Editor focused");
                     // it's possible to call java::call_instance_method("showKeyboard")
                     // right here, but needed something to show the usage of user events
                     let _ = self.proxy.send_event(UserEvent::ShowKeyboard);
                 }
                 text_editor::Action::Blur => {
+                    log::info!("Editor lost focus");
                     let _ = self.proxy.send_event(UserEvent::HideKeyboard);
                 }
                 other => self.editor.perform(other),
             },
         }
 
-        Command::none()
+        Task::none()
     }
 
     fn view(&self) -> Element<Message, Theme, Renderer> {
@@ -135,7 +137,7 @@ impl Controls {
                 sliders,
                 Space::with_height(20),
             ]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(10),
         )
         .padding(10)
@@ -154,7 +156,7 @@ impl Controls {
                 vertical_space(),
                 Space::with_height(100),
             ]
-            .align_items(Alignment::Center)
+            .align_x(Alignment::Center)
             .spacing(10),
         )
         .center(Length::Fill)
@@ -173,7 +175,7 @@ impl Controls {
                     .on_action(Message::EditorAction),
                 vertical_space(),
             ]
-            .align_items(Alignment::Center),
+            .align_x(Alignment::Center),
         )
         .padding(10)
         .center(Length::Fill)

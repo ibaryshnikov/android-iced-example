@@ -19,23 +19,23 @@ futures = "0.3"
 
 [dependencies.iced_core]
 git = "https://github.com/ibaryshnikov/iced.git"
-rev = "901bbeb"
+rev = "009bf6c"
 # path = "../../iced/core"
 
 [dependencies.iced_widget]
 git = "https://github.com/ibaryshnikov/iced.git"
-rev = "901bbeb"
+rev = "009bf6c"
 # path = "../../iced/widget"
 features = ["wgpu"]
 
 [dependencies.iced_winit]
 git = "https://github.com/ibaryshnikov/iced.git"
-rev = "901bbeb"
+rev = "009bf6c"
 # path = "../../iced/winit"
 
 [dependencies.iced_wgpu]
 git = "https://github.com/ibaryshnikov/iced.git"
-rev = "901bbeb"
+rev = "009bf6c"
 # path = "../../iced/wgpu"
 
 [patch.crates-io]
