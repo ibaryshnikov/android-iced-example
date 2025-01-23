@@ -1,0 +1,43 @@
+[package]
+name = "android-iced-example"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "example"
+crate-type = ["cdylib"]
+
+[dependencies]
+log = "0.4"
+android_logger = "0.14.1"
+android-activity = { version = "0.6", features = ["game-activity"] }
+ndk-context = "0.1"
+jni = { version = "0.21", features = ["invocation"] }
+# ndk-sys = "0.6.0"
+# ndk = "0.9.0"
+futures = "0.3"
+
+[dependencies.iced_core]
+git = "https://github.com/ibaryshnikov/iced.git"
+rev = "009bf6c"
+# path = "../../iced/core"
+
+[dependencies.iced_widget]
+git = "https://github.com/ibaryshnikov/iced.git"
+rev = "009bf6c"
+# path = "../../iced/widget"
+features = ["wgpu"]
+
+[dependencies.iced_winit]
+git = "https://github.com/ibaryshnikov/iced.git"
+rev = "009bf6c"
+# path = "../../iced/winit"
+
+[dependencies.iced_wgpu]
+git = "https://github.com/ibaryshnikov/iced.git"
+rev = "009bf6c"
+# path = "../../iced/wgpu"
+
+[patch.crates-io]
+softbuffer = { git = "https://github.com/MarijnS95/softbuffer.git", rev = "d5cc95a" } # branch = "android"
+# android-activity = { path = "../../android-activity/android-activity" }
