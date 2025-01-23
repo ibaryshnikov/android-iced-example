@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Engine, Renderer};
@@ -52,6 +53,7 @@ fn android_main(android_app: AndroidApp) {
 enum UserEvent {
     ShowKeyboard,
     HideKeyboard,
+    Tick,
 }
 
 struct App {
@@ -60,6 +62,8 @@ struct App {
     resized: bool,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: ModifiersState,
+    value: AtomicU32,
+    running: Arc<AtomicBool>,
 }
 
 struct AppData {
@@ -85,6 +89,8 @@ impl App {
             resized: false,
             cursor_position: None,
             modifiers: ModifiersState::default(),
+            value: AtomicU32::new(0),
+            running: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -201,6 +207,25 @@ impl ApplicationHandler<UserEvent> for App {
             debug,
         };
         self.app_data = Some(app_data);
+
+        let event_loop_running = self.running.load(Ordering::SeqCst);
+        if event_loop_running {
+            return;
+        }
+        self.running.store(true, Ordering::SeqCst);
+
+        let event_proxy = self.proxy.clone();
+        let is_running = self.running.clone();
+
+        std::thread::spawn(move || {
+            loop {
+                std::thread::sleep(std::time::Duration::from_secs(10));
+                if let Err(_e) = event_proxy.send_event(UserEvent::Tick) {
+                    is_running.store(false, Ordering::SeqCst);
+                    break;
+                }
+            }
+        });
     }
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: UserEvent) {
@@ -210,6 +235,10 @@ impl ApplicationHandler<UserEvent> for App {
             }
             UserEvent::HideKeyboard => {
                 java::call_instance_method("hideKeyboard");
+            }
+            UserEvent::Tick => {
+                let value = self.value.fetch_add(1, Ordering::SeqCst);
+                log::info!("Tick event, counter value: {}", value);
             }
         }
     }

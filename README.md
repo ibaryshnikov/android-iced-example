@@ -1,11 +1,13 @@
 # Example of building android app with iced
 
+There are [NativeActivity](./NativeActivity) and [GameActivity](./GameActivity) examples here.
+
 Based on several other examples:
- - [na-mainloop](https://github.com/rust-mobile/android-activity/tree/v0.6.0/examples/na-mainloop)
-   from `android-activity`
+ - `na-mainloop` and `agdk-mainloop` from
+   [android-activity](https://github.com/rust-mobile/android-activity/tree/v0.6.0/examples)
  - [na-winit-wgpu](https://github.com/rust-mobile/rust-android-examples/tree/main/na-winit-wgpu)
    from `rust-android-examples`
- - [integration](https://github.com/iced-rs/iced/tree/0.12.1/examples/integration)
+ - [integration](https://github.com/iced-rs/iced/tree/0.13.1/examples/integration)
    from `iced`
 
 
@@ -67,6 +69,6 @@ Thanks to `android-activity` we can already build android apps in Rust, and
 key crates such as `winit` and `wgpu` also support building for android.
 `iced` doesn't support android out of the box, but it can be integrated with
 existing graphics pipelines, as shown in
-[integration](https://github.com/iced-rs/iced/tree/0.12.1/examples/integration) example.
+[integration](https://github.com/iced-rs/iced/tree/0.13.1/examples/integration) example.
 As a result, it was possible to convert existing example running `winit` + `wgpu` to
 use `iced` on top.

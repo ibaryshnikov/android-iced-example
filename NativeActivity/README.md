@@ -1,11 +1,7 @@
 # Example of building android app with iced
 
-This is a `GameActivity` example, based on `agdk-mainloop` from
+This is a `NativeActivity` example, based on `na-mainloop` from
 [android-activity](https://github.com/rust-mobile/android-activity)
-
-**Important:** there's an [issue](https://github.com/rust-mobile/android-activity/issues/79)
-with event filters in emulator. To use touch screen in emulator,
-you'll have to clone `android-activity` and change the default filter.
 
 
 ## Building and running
