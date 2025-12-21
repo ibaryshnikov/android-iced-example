@@ -1,10 +1,10 @@
 use iced_wgpu::Renderer;
 use iced_widget::{
-    button, column, container, horizontal_space, pick_list, row, slider, text, text_editor,
-    text_input, vertical_space, PickList, Slider, Space,
+    button, column, container, pick_list, row, slider, space, text, text_editor, text_input,
+    PickList, Slider, Space,
 };
 use iced_winit::core::{Alignment, Color, Element, Length, Theme};
-use iced_winit::runtime::{Program, Task};
+use iced_winit::runtime::Task;
 use iced_winit::winit::event_loop::EventLoopProxy;
 
 use crate::UserEvent;
@@ -62,12 +62,8 @@ impl Controls {
     }
 }
 
-impl Program for Controls {
-    type Theme = Theme;
-    type Message = Message;
-    type Renderer = Renderer;
-
-    fn update(&mut self, message: Message) -> Task<Message> {
+impl Controls {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::Inc => self.value += 1,
             Message::Dec => self.value -= 1,
@@ -94,7 +90,7 @@ impl Program for Controls {
         Task::none()
     }
 
-    fn view(&self) -> Element<Message, Theme, Renderer> {
+    pub fn view(&self) -> Element<'_, Message, Theme, Renderer> {
         match self.selected_example {
             Example::Integration => self.integration(),
             Example::Counter => self.counter(),
@@ -108,14 +104,14 @@ fn color_slider<'a>(value: f32, f: impl Fn(f32) -> Message + 'a) -> Slider<'a, f
 }
 
 impl Controls {
-    fn examples(&self) -> PickList<Example, &[Example], Example, Message> {
+    fn examples(&self) -> PickList<'_, Example, &[Example], Example, Message> {
         pick_list(
             &EXAMPLES[..],
             Some(self.selected_example),
             Message::ExampleSelected,
         )
     }
-    fn integration(&self) -> Element<Message, Theme, Renderer> {
+    fn integration(&self) -> Element<'_, Message, Theme, Renderer> {
         let sliders = row![
             color_slider(self.background_color.r, Message::RedChanged),
             color_slider(self.background_color.g, Message::GreenChanged),
@@ -126,16 +122,16 @@ impl Controls {
 
         container(
             column![
-                Space::with_height(20),
+                Space::new().height(20),
                 self.examples(),
-                vertical_space(),
+                space::vertical(),
                 row![
                     text!("{:?}", self.background_color).size(14),
-                    horizontal_space(),
+                    space::horizontal(),
                 ],
                 text_input("Placeholder", &self.input).on_input(Message::InputChanged),
                 sliders,
-                Space::with_height(20),
+                Space::new().height(20),
             ]
             .align_x(Alignment::Center)
             .spacing(10),
@@ -144,17 +140,17 @@ impl Controls {
         .into()
     }
 
-    fn counter(&self) -> Element<Message, Theme, Renderer> {
+    fn counter(&self) -> Element<'_, Message, Theme, Renderer> {
         container(
             column![
-                Space::with_height(30),
+                Space::new().height(30),
                 self.examples(),
-                vertical_space(),
+                space::vertical(),
                 button("Increment").on_press(Message::Inc),
                 text!("{}", self.value).size(50),
                 button("Decrement").on_press(Message::Dec),
-                vertical_space(),
-                Space::with_height(100),
+                space::vertical(),
+                Space::new().height(100),
             ]
             .align_x(Alignment::Center)
             .spacing(10),
@@ -164,16 +160,16 @@ impl Controls {
         .into()
     }
 
-    fn text_editor(&self) -> Element<Message, Theme, Renderer> {
+    fn text_editor(&self) -> Element<'_, Message, Theme, Renderer> {
         container(
             column![
-                Space::with_height(30),
+                Space::new().height(30),
                 self.examples(),
-                vertical_space(),
+                space::vertical(),
                 text_editor::<Message, Theme, Renderer>(&self.editor)
                     .height(400)
                     .on_action(Message::EditorAction),
-                vertical_space(),
+                space::vertical(),
             ]
             .align_x(Alignment::Center),
         )

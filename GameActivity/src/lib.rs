@@ -1,15 +1,16 @@
 use std::sync::Arc;
+use std::time::Instant;
 
-use iced_wgpu::graphics::Viewport;
+use iced_wgpu::graphics::{Shell, Viewport};
 use iced_wgpu::{wgpu, Engine, Renderer};
-use iced_winit::core::{mouse, renderer, Font, Pixels, Size, Theme};
-use iced_winit::runtime::{program, Debug};
+use iced_winit::core::{mouse, renderer, window, Event, Font, Pixels, Size, Theme};
+use iced_winit::runtime::user_interface::{self, UserInterface};
 use iced_winit::{conversion, winit};
 use log::LevelFilter;
-use wgpu::{Device, Instance, Queue, TextureFormat};
+use wgpu::{Device, Queue, TextureFormat};
 use winit::application::ApplicationHandler;
 use winit::event::{DeviceEvent, DeviceId, ElementState, StartCause, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 use winit::platform::android::activity::AndroidApp;
 use winit::platform::android::EventLoopBuilderExtAndroid;
@@ -43,8 +44,9 @@ fn android_main(android_app: AndroidApp) {
         .expect("Should build event loop");
 
     let proxy = event_loop.create_proxy();
+    let controls = Controls::new(proxy);
 
-    let mut app = App::new(proxy);
+    let mut app = App::new(controls);
     event_loop.run_app(&mut app).expect("Should run event loop");
 }
 
@@ -55,36 +57,37 @@ enum UserEvent {
 }
 
 struct App {
-    proxy: EventLoopProxy<UserEvent>,
     app_data: Option<AppData>,
     resized: bool,
-    cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
+    cursor: mouse::Cursor,
     modifiers: ModifiersState,
+    events: Vec<Event>,
+    cache: user_interface::Cache,
+    controls: Controls,
 }
 
 struct AppData {
-    state: program::State<Controls>,
     scene: Scene,
     window: Arc<Window>,
     device: Device,
     queue: Queue,
     surface: wgpu::Surface<'static>,
     format: TextureFormat,
-    engine: Engine,
     renderer: Renderer,
     clipboard: Clipboard,
     viewport: Viewport,
-    debug: Debug,
 }
 
 impl App {
-    fn new(proxy: EventLoopProxy<UserEvent>) -> Self {
+    fn new(controls: Controls) -> Self {
         Self {
-            proxy,
             app_data: None,
             resized: false,
-            cursor_position: None,
+            cursor: mouse::Cursor::Unavailable,
             modifiers: ModifiersState::default(),
+            events: Vec::new(),
+            cache: user_interface::Cache::new(),
+            controls,
         }
     }
 }
@@ -101,10 +104,7 @@ impl ApplicationHandler<UserEvent> for App {
         //     return;
         // }
 
-        let instance = Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            ..Default::default()
-        });
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::from_env_or_default());
 
         let attrs = Window::default_attributes();
         let window = Arc::new(event_loop.create_window(attrs).unwrap());
@@ -113,7 +113,7 @@ impl ApplicationHandler<UserEvent> for App {
         let physical_size = window.inner_size();
         let viewport = Viewport::with_physical_size(
             Size::new(physical_size.width, physical_size.height),
-            window.scale_factor(),
+            window.scale_factor() as f32,
         );
         let clipboard = Clipboard {};
 
@@ -132,15 +132,14 @@ impl ApplicationHandler<UserEvent> for App {
             let capabilities = surface.get_capabilities(&adapter);
 
             let (device, queue) = adapter
-                .request_device(
-                    &wgpu::DeviceDescriptor {
-                        label: None,
-                        required_features: adapter_features & wgpu::Features::default(),
-                        required_limits: wgpu::Limits::default(),
-                        memory_hints: wgpu::MemoryHints::MemoryUsage,
-                    },
-                    None,
-                )
+                .request_device(&wgpu::DeviceDescriptor {
+                    label: None,
+                    required_features: adapter_features & wgpu::Features::default(),
+                    required_limits: wgpu::Limits::default(),
+                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+                    trace: wgpu::Trace::Off,
+                    experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                })
                 .await
                 .expect("Request device");
 
@@ -173,33 +172,31 @@ impl ApplicationHandler<UserEvent> for App {
         );
 
         let scene = Scene::new(&device, format);
-        let controls = Controls::new(self.proxy.clone());
 
-        let mut debug = Debug::new();
-        let engine = Engine::new(&adapter, &device, &queue, format, None);
-        let mut renderer = Renderer::new(&device, &engine, Font::default(), Pixels::from(16));
-
-        let state =
-            program::State::new(controls, viewport.logical_size(), &mut renderer, &mut debug);
+        let engine = Engine::new(
+            &adapter,
+            device.clone(),
+            queue.clone(),
+            format,
+            None,
+            Shell::headless(),
+        );
+        let renderer = Renderer::new(engine, Font::default(), Pixels::from(16));
 
         event_loop.set_control_flow(ControlFlow::Wait);
 
-        self.cursor_position = None;
         self.modifiers = ModifiersState::default();
 
         let app_data = AppData {
-            state,
             scene,
             window,
             device,
             queue,
             surface,
             format,
-            engine,
             renderer,
             clipboard,
             viewport,
-            debug,
         };
         self.app_data = Some(app_data);
     }
@@ -237,17 +234,14 @@ impl ApplicationHandler<UserEvent> for App {
         };
 
         let AppData {
-            state,
             scene,
             window,
             device,
             queue,
             surface,
             format,
-            engine,
             renderer,
             clipboard,
-            debug,
             ..
         } = app_data;
 
@@ -261,7 +255,7 @@ impl ApplicationHandler<UserEvent> for App {
 
                     app_data.viewport = Viewport::with_physical_size(
                         Size::new(size.width, size.height),
-                        window.scale_factor(),
+                        window.scale_factor() as f32,
                     );
 
                     surface.configure(
@@ -288,36 +282,61 @@ impl ApplicationHandler<UserEvent> for App {
                                 label: None,
                             });
 
-                        let program = state.program();
-
                         let view = frame
                             .texture
                             .create_view(&wgpu::TextureViewDescriptor::default());
 
                         {
                             let mut render_pass =
-                                Scene::clear(&view, &mut encoder, program.background_color());
+                                Scene::clear(&view, &mut encoder, self.controls.background_color());
                             scene.draw(&mut render_pass);
                         }
 
-                        renderer.present::<String>(
-                            engine,
-                            device,
-                            queue,
-                            &mut encoder,
-                            None,
-                            frame.texture.format(),
-                            &view,
-                            &app_data.viewport,
-                            &[],
+                        queue.submit([encoder.finish()]);
+
+                        let mut interface = UserInterface::build(
+                            self.controls.view(),
+                            app_data.viewport.logical_size(),
+                            std::mem::take(&mut self.cache),
+                            renderer,
                         );
 
-                        engine.submit(queue, encoder);
-                        frame.present();
+                        let (state, _) = interface.update(
+                            &[Event::Window(
+                                window::Event::RedrawRequested(Instant::now()),
+                            )],
+                            self.cursor,
+                            renderer,
+                            clipboard,
+                            &mut Vec::new(),
+                        );
 
-                        window.set_cursor(iced_winit::conversion::mouse_interaction(
-                            state.mouse_interaction(),
-                        ));
+                        if let user_interface::State::Updated {
+                            mouse_interaction, ..
+                        } = state
+                        {
+                            if let Some(icon) = conversion::mouse_interaction(mouse_interaction) {
+                                window.set_cursor(icon);
+                                window.set_cursor_visible(true);
+                            } else {
+                                window.set_cursor_visible(false);
+                            }
+                        }
+
+                        let theme = Theme::Ferra;
+                        interface.draw(
+                            renderer,
+                            &theme,
+                            &renderer::Style {
+                                text_color: theme.palette().text,
+                            },
+                            self.cursor,
+                        );
+                        self.cache = interface.into_cache();
+
+                        renderer.present(None, frame.texture.format(), &view, &app_data.viewport);
+
+                        frame.present();
                     }
                     Err(error) => match error {
                         wgpu::SurfaceError::OutOfMemory => {
@@ -333,10 +352,16 @@ impl ApplicationHandler<UserEvent> for App {
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {
-                self.cursor_position = Some(position);
+                self.cursor = mouse::Cursor::Available(conversion::cursor_position(
+                    position,
+                    app_data.viewport.scale_factor(),
+                ));
             }
             WindowEvent::Touch(touch) => {
-                self.cursor_position = Some(touch.location);
+                self.cursor = mouse::Cursor::Available(conversion::cursor_position(
+                    touch.location,
+                    app_data.viewport.scale_factor(),
+                ));
             }
             WindowEvent::Ime(ref ime) => {
                 log::info!("Ime event: {:?}", ime);
@@ -370,29 +395,39 @@ impl ApplicationHandler<UserEvent> for App {
         }
 
         if let Some(event) =
-            iced_winit::conversion::window_event(event, window.scale_factor(), self.modifiers)
+            conversion::window_event(event, window.scale_factor() as f32, self.modifiers)
         {
-            state.queue_event(event);
+            self.events.push(event);
         }
 
-        if !state.is_queue_empty() {
-            let _ = state.update(
-                app_data.viewport.logical_size(),
-                self.cursor_position
-                    .map(|p| conversion::cursor_position(p, app_data.viewport.scale_factor()))
-                    .map(mouse::Cursor::Available)
-                    .unwrap_or(mouse::Cursor::Unavailable),
-                renderer,
-                &Theme::Ferra,
-                &renderer::Style {
-                    text_color: Theme::Ferra.palette().text,
-                },
-                clipboard,
-                debug,
-            );
-
-            window.request_redraw();
+        if self.events.is_empty() {
+            return;
         }
+        let mut interface = UserInterface::build(
+            self.controls.view(),
+            app_data.viewport.logical_size(),
+            std::mem::take(&mut self.cache),
+            renderer,
+        );
+
+        let mut messages = Vec::new();
+
+        let _ = interface.update(
+            &self.events,
+            self.cursor,
+            renderer,
+            clipboard,
+            &mut messages,
+        );
+
+        self.events.clear();
+        self.cache = interface.into_cache();
+
+        for message in messages {
+            let _ = self.controls.update(message);
+        }
+
+        window.request_redraw();
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {}

@@ -34,7 +34,7 @@ pub(crate) fn get_vm(ctx: &ndk_context::AndroidContext) -> JavaVM {
     })
 }
 
-pub(crate) fn get_env(vm: &JavaVM) -> AttachGuard {
+pub(crate) fn get_env(vm: &JavaVM) -> AttachGuard<'_> {
     vm.attach_current_thread().unwrap_or_else(|e| {
         log::error!("Error attaching vm: {:?}", e);
         panic!("Failed to call attach_current_thread for JavaVM");

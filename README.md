@@ -7,7 +7,7 @@ Based on several other examples:
    [android-activity](https://github.com/rust-mobile/android-activity/tree/v0.6.0/examples)
  - [na-winit-wgpu](https://github.com/rust-mobile/rust-android-examples/tree/main/na-winit-wgpu)
    from `rust-android-examples`
- - [integration](https://github.com/iced-rs/iced/tree/0.13.1/examples/integration)
+ - [integration](https://github.com/iced-rs/iced/tree/0.14/examples/integration)
    from `iced`
 
 
